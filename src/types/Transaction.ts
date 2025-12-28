@@ -1,5 +1,5 @@
 // src/types/Transaction.ts
-
+import { randomUUID } from 'node:crypto';
 /**
  * Transaction entity
  * Represents a single financial transaction from Open Banking.
@@ -57,7 +57,7 @@ export function createTransaction(
   const now = new Date().toISOString();
   
   return {
-    transaction_id: crypto.randomUUID(),
+    transaction_id: randomUUID(),
     external_id,
     account_id,
     user_id,
@@ -77,4 +77,4 @@ export function createTransaction(
 /**
  * Import type definition for BudgetPeriod (to avoid circular dependency)
  */
-import { BudgetPeriod } from './BudgetPeriod';
+import { BudgetPeriod } from './BudgetPeriod.js';

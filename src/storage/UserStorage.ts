@@ -1,8 +1,8 @@
 // src/storage/UserStorage.ts
 
-import { GoogleDriveClient } from './GoogleDriveClient';
-import { User, createUser } from '../types/User';
-import { STORAGE_CONFIG } from './StorageConfig';
+import { GoogleDriveClient } from './GoogleDriveClient.js';
+import { User, createUser } from '../types/User.js';
+import { STORAGE_CONFIG } from './StorageConfig.js';
 
 /**
  * User storage operations

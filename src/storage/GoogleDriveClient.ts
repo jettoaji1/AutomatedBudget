@@ -29,11 +29,7 @@ export class GoogleDriveClient {
   async initializeStorage(): Promise<void> {
     // Find or create root folder
     this.rootFolderId = await this.findOrCreateFolder(STORAGE_CONFIG.ROOT_FOLDER, null);
-    
-    console.log('Storage root folder:', {
-      name: STORAGE_CONFIG.ROOT_FOLDER,
-      id: this.rootFolderId,
-  });
+  
 
     // Create subfolders
     await this.findOrCreateFolder(STORAGE_CONFIG.ACCOUNTS_FOLDER, this.rootFolderId);
@@ -49,6 +45,7 @@ export class GoogleDriveClient {
    */
   private async findOrCreateFolder(folderName: string, parentId: string | null): Promise<string> {
     // Search for existing folder
+    
     const query = parentId
       ? `name='${folderName}' and '${parentId}' in parents and mimeType='${STORAGE_CONFIG.MIME_FOLDER}' and trashed=false`
       : `name='${folderName}' and mimeType='${STORAGE_CONFIG.MIME_FOLDER}' and trashed=false`;
@@ -60,8 +57,16 @@ export class GoogleDriveClient {
       }
     );
 
-    const searchData = await searchResponse.json();
+    //hidden check for if searchResponse is not 200 status
+    if (!searchResponse.ok) {
+      const error = await searchResponse.text();
+      throw new Error(
+        `Drive search failed (${searchResponse.status}): ${error}`
+      );
+    }
     
+    const searchData = await searchResponse.json();
+  
     if (searchData.files && searchData.files.length > 0) {
       return searchData.files[0].id;
     }
@@ -71,6 +76,7 @@ export class GoogleDriveClient {
       name: folderName,
       mimeType: STORAGE_CONFIG.MIME_FOLDER,
       ...(parentId && { parents: [parentId] })
+      
     };
 
     const createResponse = await fetch('https://www.googleapis.com/drive/v3/files', {
@@ -81,6 +87,14 @@ export class GoogleDriveClient {
       },
       body: JSON.stringify(metadata)
     });
+
+    //again hidden check for if createResponse is not 200 status
+    if (!createResponse.ok) {
+      const error = await createResponse.text();
+      throw new Error(
+        `Drive folder creation failed (${createResponse.status}): ${error}`
+      );
+    }
 
     const createData = await createResponse.json();
     return createData.id;
@@ -236,7 +250,7 @@ export class GoogleDriveClient {
    * @param folderPath - Path like "periods" or "accounts"
    * @returns Array of file IDs
    */
-  async listFiles(folderPath: string): Promise<string[]> {
+  async listFiles(folderPath: string): Promise<{ id: string; name: string }[]> {
     if (!this.rootFolderId) {
       await this.initializeStorage();
     }
@@ -271,6 +285,6 @@ export class GoogleDriveClient {
     );
 
     const data = await response.json();
-    return data.files ? data.files.map((f: any) => f.id) : [];
+    return data.files ? data.files.map((f: any) => ({id: f.id, name: f.name })) : [];
   }
 }

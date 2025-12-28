@@ -1,6 +1,6 @@
 // src/utils/dateUtils.ts
 
-import { PeriodType } from '../types/BudgetPeriod';
+import { PeriodType } from '../types/BudgetPeriod.js';
 
 /**
  * Date utility functions for budget period calculations

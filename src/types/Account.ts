@@ -1,5 +1,5 @@
 // src/types/Account.ts
-
+import { randomUUID } from 'node:crypto';
 /**
  * Account entity
  * Represents a bank account connected via Open Banking.
@@ -26,7 +26,7 @@ export function createAccount(
   currency: string
 ): Account {
   return {
-    account_id: crypto.randomUUID(),
+    account_id: randomUUID(),
     user_id,
     bank_name,
     account_name,

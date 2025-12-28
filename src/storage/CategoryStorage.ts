@@ -1,8 +1,8 @@
 // src/storage/CategoryStorage.ts
 
-import { GoogleDriveClient } from './GoogleDriveClient';
-import { Category, CategoriesCollection, createCategory, createDefaultCategory } from '../types/Category';
-import { STORAGE_CONFIG } from './StorageConfig';
+import { GoogleDriveClient } from './GoogleDriveClient.js';
+import { Category, CategoriesCollection, createCategory, createDefaultCategory } from '../types/Category.js';
+import { STORAGE_CONFIG } from './StorageConfig.js';
 
 /**
  * Category storage operations
@@ -24,15 +24,30 @@ export class CategoryStorage {
    * @param user_id - User ID
    * @returns Array containing the default category
    */
-  async initializeCategories(user_id: string): Promise<Category[]> {
-    const defaultCategory = createDefaultCategory(user_id);
-    const collection: CategoriesCollection = {
-      categories: [defaultCategory]
-    };
+ async initializeCategories(user_id: string): Promise<Category[]> {
+  // 1) Try to read existing categories.json first
+  const existing = await this.driveClient.readFile<CategoriesCollection>(STORAGE_CONFIG.CATEGORIES_FILE);
 
-    await this.driveClient.writeFile(STORAGE_CONFIG.CATEGORIES_FILE, collection);
-    return collection.categories;
+  if (existing && Array.isArray(existing.categories)) {
+    // 2) Ensure a default category exists (future-proof)
+    const hasDefault = existing.categories.some(c => c.is_default);
+
+    if (!hasDefault) {
+      const defaultCategory = createDefaultCategory(user_id);
+      existing.categories.push(defaultCategory);
+      await this.driveClient.writeFile(STORAGE_CONFIG.CATEGORIES_FILE, existing);
+    }
+
+    return existing.categories;
   }
+
+  // 3) If missing, create fresh collection with default
+  const defaultCategory = createDefaultCategory(user_id);
+  const collection: CategoriesCollection = { categories: [defaultCategory] };
+
+  await this.driveClient.writeFile(STORAGE_CONFIG.CATEGORIES_FILE, collection);
+  return collection.categories;
+}
 
   /**
    * Get all categories for a user

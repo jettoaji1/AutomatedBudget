@@ -1,8 +1,8 @@
 // src/storage/AccountStorage.ts
 
-import { GoogleDriveClient } from './GoogleDriveClient';
-import { Account, createAccount } from '../types/Account';
-import { getAccountFilePath, STORAGE_CONFIG } from './StorageConfig';
+import { GoogleDriveClient } from './GoogleDriveClient.js';
+import { Account, createAccount } from '../types/Account.js';
+import { getAccountFilePath, STORAGE_CONFIG } from './StorageConfig.js';
 
 /**
  * Account storage operations
@@ -89,18 +89,15 @@ export class AccountStorage {
    * @returns Array of all Account objects
    */
   private async listAllAccounts(): Promise<Account[]> {
-    const fileIds = await this.driveClient.listFiles(STORAGE_CONFIG.ACCOUNTS_FOLDER);
+    const files = await this.driveClient.listFiles(STORAGE_CONFIG.ACCOUNTS_FOLDER);
     const accounts: Account[] = [];
 
-    // Note: In a real implementation, we'd need a way to map file IDs to account IDs
-    // For now, we make an assumption that we can derive the filename from the file ID
-    // or maintain a separate index.
-    
-    // TODO: This requires enhancement to track filename->account_id mapping
-    // For MVP, we can work around this by reading all files in the folder
-    
-    // Workaround: We'll need to modify GoogleDriveClient.listFiles to return names
-    // For now, marking this as a known limitation
+    for (const f of files) {
+      // accounts/{account_id}.json
+      const filePath = `${STORAGE_CONFIG.ACCOUNTS_FOLDER}/${f.name}`;
+      const account = await this.driveClient.readFile<Account>(filePath);
+      if (account) accounts.push(account);
+    }
     
     return accounts;
   }

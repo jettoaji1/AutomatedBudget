@@ -1,6 +1,6 @@
 // src/utils/deduplication.ts
 
-import { Transaction } from '../types/Transaction';
+import { Transaction } from '../types/Transaction.js';
 
 /**
  * Transaction de-duplication utilities

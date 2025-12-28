@@ -1,5 +1,5 @@
 // src/types/Category.ts
-
+import { randomUUID } from 'node:crypto';
 /**
  * Category entity
  * Represents a spending category with a monthly limit.
@@ -36,7 +36,7 @@ export function createCategory(
   is_default: boolean = false
 ): Category {
   return {
-    category_id: crypto.randomUUID(),
+    category_id: randomUUID(),
     user_id,
     name,
     monthly_limit,

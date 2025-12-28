@@ -1,11 +1,11 @@
 // src/storage/PeriodStorage.ts
 
-import { GoogleDriveClient } from './GoogleDriveClient';
-import { BudgetPeriod, PeriodType, createBudgetPeriod } from '../types/BudgetPeriod';
-import { Transaction, PeriodData, createTransaction } from '../types/Transaction';
-import { getPeriodFilePath, STORAGE_CONFIG } from './StorageConfig';
-import { calculatePeriodDates, isDateInPeriod, formatDate, parseDate } from '../utils/dateUtils';
-import { mergeTransactions, validateNoDuplicates } from '../utils/deduplication';
+import { GoogleDriveClient } from './GoogleDriveClient.js';
+import { BudgetPeriod, PeriodType, createBudgetPeriod } from '../types/BudgetPeriod.js';
+import { Transaction, PeriodData, createTransaction } from '../types/Transaction.js';
+import { getPeriodFilePath, STORAGE_CONFIG } from './StorageConfig.js';
+import { calculatePeriodDates, isDateInPeriod, formatDate, parseDate } from '../utils/dateUtils.js';
+import { mergeTransactions, validateNoDuplicates } from '../utils/deduplication.js';
 
 /**
  * Period storage operations

@@ -1,5 +1,5 @@
 // src/types/BudgetPeriod.ts
-
+import { randomUUID } from 'node:crypto';
 /**
  * Period type enumeration
  * FIXED_DATE: Period runs from a specific day each month (e.g., 1st to 1st)
@@ -47,7 +47,7 @@ export function createBudgetPeriod(
   anchor_date: string
 ): BudgetPeriod {
   return {
-    period_id: crypto.randomUUID(),
+    period_id: randomUUID(),
     user_id,
     account_id,
     start_date,
