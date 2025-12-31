@@ -1,8 +1,8 @@
 // src/storage/CategoryStorage.ts
 
-import { GoogleDriveClient } from './GoogleDriveClient.js';
-import { Category, CategoriesCollection, createCategory, createDefaultCategory } from '../types/Category.js';
-import { STORAGE_CONFIG } from './StorageConfig.js';
+import { GoogleDriveClient } from './GoogleDriveClient';
+import { Category, CategoriesCollection, createCategory, createDefaultCategory } from '../types/Category';
+import { STORAGE_CONFIG } from './StorageConfig';
 
 /**
  * Category storage operations

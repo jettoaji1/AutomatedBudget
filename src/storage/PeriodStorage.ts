@@ -1,11 +1,11 @@
 // src/storage/PeriodStorage.ts
 
-import { GoogleDriveClient } from './GoogleDriveClient.js';
-import { BudgetPeriod, PeriodType, createBudgetPeriod } from '../types/BudgetPeriod.js';
-import { Transaction, PeriodData, createTransaction } from '../types/Transaction.js';
-import { getPeriodFilePath, STORAGE_CONFIG } from './StorageConfig.js';
-import { calculatePeriodDates, isDateInPeriod, formatDate, parseDate } from '../utils/dateUtils.js';
-import { mergeTransactions, validateNoDuplicates } from '../utils/deduplication.js';
+import { GoogleDriveClient } from './GoogleDriveClient';
+import { BudgetPeriod, PeriodType, createBudgetPeriod } from '../types/BudgetPeriod';
+import { Transaction, PeriodData, createTransaction } from '../types/Transaction';
+import { getPeriodFilePath, STORAGE_CONFIG } from './StorageConfig';
+import { calculatePeriodDates, isDateInPeriod, formatDate, parseDate } from '../utils/dateUtils';
+import { mergeTransactions, validateNoDuplicates } from '../utils/deduplication';
 
 /**
  * Period storage operations
@@ -116,19 +116,26 @@ export class PeriodStorage {
    * @returns Array of PeriodData objects, sorted by start_date (newest first)
    */
   async listAllPeriods(user_id: string, account_id: string): Promise<PeriodData[]> {
-    // List all files in periods folder
-    const fileIds = await this.driveClient.listFiles(STORAGE_CONFIG.PERIODS_FOLDER);
+    const files = await this.driveClient.listFiles(STORAGE_CONFIG.PERIODS_FOLDER);
     const periods: PeriodData[] = [];
 
-    // Note: We need to read all period files to filter by user/account
-    // This is inefficient but acceptable for V1
-    // In production, we'd maintain an index file or use file naming convention
-    
-    // TODO: Enhance to read actual period files
-    // For now, this is a placeholder that demonstrates the logic
-    // Real implementation would need to iterate through files and read each one
-    
-    return periods.sort((a, b) => 
+    for (const f of files) {
+      // periods/{period_id}.json
+      const filePath = `${STORAGE_CONFIG.PERIODS_FOLDER}/${f.name}`;
+      const periodData = await this.driveClient.readFile<PeriodData>(filePath);
+
+      if (!periodData) continue;
+
+      // Filter by user + account
+      if (
+        periodData.period.user_id === user_id &&
+        periodData.period.account_id === account_id
+      ) {
+        periods.push(periodData);
+      }
+    }
+
+    return periods.sort((a, b) =>
       b.period.start_date.localeCompare(a.period.start_date)
     );
   }

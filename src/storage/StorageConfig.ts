@@ -21,7 +21,7 @@ export const STORAGE_CONFIG = {
   ROOT_FOLDER: 'BudgetingApp',
   
   // File paths
-  USER_FILE: 'user.json',
+  USER_FILE: 'user/user.json',
   ACCOUNTS_FOLDER: 'accounts',
   CATEGORIES_FOLDER: 'categories',
   CATEGORIES_FILE: 'categories/categories.json',

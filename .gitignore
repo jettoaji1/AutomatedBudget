@@ -1,5 +1,7 @@
 # Secrets
 .env
+.env.local
+.env.*
 
 # Node
 node_modules/
@@ -7,6 +9,7 @@ node_modules/
 # Build output
 dist/
 build/
+.next/
 
 # Logs
 npm-debug.log*

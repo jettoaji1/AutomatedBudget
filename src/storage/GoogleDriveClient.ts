@@ -1,6 +1,6 @@
 // src/storage/GoogleDriveClient.ts
 
-import { STORAGE_CONFIG } from './StorageConfig.js';
+import { STORAGE_CONFIG } from './StorageConfig';
 
 /**
  * Low-level Google Drive API client

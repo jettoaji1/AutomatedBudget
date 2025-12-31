@@ -77,4 +77,4 @@ export function createTransaction(
 /**
  * Import type definition for BudgetPeriod (to avoid circular dependency)
  */
-import { BudgetPeriod } from './BudgetPeriod.js';
+import { BudgetPeriod } from './BudgetPeriod';

@@ -1,8 +1,8 @@
 // src/storage/AccountStorage.ts
 
-import { GoogleDriveClient } from './GoogleDriveClient.js';
-import { Account, createAccount } from '../types/Account.js';
-import { getAccountFilePath, STORAGE_CONFIG } from './StorageConfig.js';
+import { GoogleDriveClient } from './GoogleDriveClient';
+import { Account, createAccount } from '../types/Account';
+import { getAccountFilePath, STORAGE_CONFIG } from './StorageConfig';
 
 /**
  * Account storage operations
