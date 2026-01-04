@@ -183,6 +183,8 @@ export class PeriodStorage {
    * Update a transaction's category assignment
    * Used when user manually recategorizes a transaction.
    * 
+   * IMPORTANT: This method now preserves original_category on first manual change.
+   * 
    * @param period_id - Period ID
    * @param transaction_id - Transaction ID to update
    * @param new_category_id - New category ID
@@ -205,6 +207,11 @@ export class PeriodStorage {
 
     if (!transaction) {
       throw new Error(`Transaction ${transaction_id} not found in period ${period_id}`);
+    }
+
+    // ✨ NEW: Preserve original category on first manual change
+    if (transaction.original_category === null && !transaction.is_manual_override) {
+      transaction.original_category = transaction.category_id;
     }
 
     // Update category and mark as manual override

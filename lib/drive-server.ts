@@ -4,6 +4,7 @@ import { UserStorage } from '@/src/storage/UserStorage';
 import { AccountStorage } from '@/src/storage/AccountStorage';
 import { CategoryStorage } from '@/src/storage/CategoryStorage';
 import { PeriodStorage } from '@/src/storage/PeriodStorage';
+import { SettingsStorage } from '@/src/storage/SettingsStorage';
 
 /**
  * Server-side storage manager
@@ -15,6 +16,7 @@ export class StorageManager {
   public accountStorage: AccountStorage;
   public categoryStorage: CategoryStorage;
   public periodStorage: PeriodStorage;
+  public settingsStorage: SettingsStorage;
 
   constructor(accessToken: string) {
     this.driveClient = new GoogleDriveClient(accessToken);
@@ -22,6 +24,7 @@ export class StorageManager {
     this.accountStorage = new AccountStorage(this.driveClient);
     this.categoryStorage = new CategoryStorage(this.driveClient);
     this.periodStorage = new PeriodStorage(this.driveClient);
+    this.settingsStorage = new SettingsStorage(this.driveClient);
   }
 
   async initialize(): Promise<void> {

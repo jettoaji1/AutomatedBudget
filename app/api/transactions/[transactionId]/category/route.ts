@@ -1,16 +1,18 @@
 // app/api/transactions/[transactionId]/category/route.ts
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { createStorageManager } from '@/lib/drive-server';
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ transactionId: string }> }
-) {
-  const { transactionId } = await params;
+type RouteContext = {
+  params: Promise<{ transactionId: string }>;
+};
 
-  
+export async function POST(request: Request, context: RouteContext) {
+  const { transactionId } = await context.params;
+
+  // ...rest of your handler stays the same
+
   try {
     const session = await getServerSession(authOptions);
     
@@ -65,14 +67,43 @@ export async function POST(
       );
     }
 
-    // Update transaction category
+    // Find transaction in period
+    const transaction = periodData.transactions.find(
+      tx => tx.transaction_id === transactionId
+    );
+
+    if (!transaction) {
+      return NextResponse.json(
+        { error: 'Transaction not found in current period' },
+        { status: 404 }
+      );
+    }
+
+    // Preserve original category on first manual change
+    if (transaction.original_category === null && !transaction.is_manual_override) {
+      transaction.original_category = transaction.category_id;
+    }
+
+    // Update transaction
+    transaction.category_id = category_id;
+    transaction.is_manual_override = true;
+    transaction.updated_at = new Date().toISOString();
+
+    // Save updated period back to Drive
     await storage.periodStorage.updateTransactionCategory(
       periodData.period.period_id,
       transactionId,
       category_id
     );
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ 
+      transaction: {
+        transaction_id: transaction.transaction_id,
+        category_id: transaction.category_id,
+        is_manual_override: transaction.is_manual_override,
+        updated_at: transaction.updated_at,
+      }
+    });
   } catch (error) {
     console.error('Update transaction category error:', error);
     return NextResponse.json(

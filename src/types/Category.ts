@@ -12,7 +12,7 @@ export interface Category {
   category_id: string;       // UUID format
   user_id: string;           // Foreign key to User
   name: string;              // e.g., "Groceries", "Transport"
-  monthly_limit: number;     // Spending limit in account currency
+  monthly_limit: number | null;     // Spending limit in account currency
   is_default: boolean;       // true only for "Other" category
   created_at: string;        // ISO 8601 timestamp
   archived_at: string | null; // ISO 8601 timestamp or null if active
@@ -32,7 +32,7 @@ export interface CategoriesCollection {
 export function createCategory(
   user_id: string,
   name: string,
-  monthly_limit: number,
+  monthly_limit: number | null,
   is_default: boolean = false
 ): Category {
   return {

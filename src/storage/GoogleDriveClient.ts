@@ -5,14 +5,6 @@ import { STORAGE_CONFIG } from './StorageConfig';
 /**
  * Low-level Google Drive API client
  * Handles all direct interactions with Google Drive API.
- * 
- * Assumptions:
- * - User has already authenticated via Google OAuth
- * - Access token is available and valid
- * - All operations use Google Drive API v3
- * 
- * This client provides basic CRUD operations for files and folders.
- * Higher-level storage classes (UserStorage, etc.) use this client.
  */
 export class GoogleDriveClient {
   private accessToken: string;
@@ -24,14 +16,16 @@ export class GoogleDriveClient {
 
   /**
    * Initialize storage by ensuring root folder structure exists
-   * Creates: /BudgetingApp/accounts, /BudgetingApp/categories, /BudgetingApp/periods
+   * Creates: /BudgetingApp/user, /BudgetingApp/settings, /BudgetingApp/accounts, 
+   *          /BudgetingApp/categories, /BudgetingApp/periods
    */
   async initializeStorage(): Promise<void> {
     // Find or create root folder
     this.rootFolderId = await this.findOrCreateFolder(STORAGE_CONFIG.ROOT_FOLDER, null);
-  
 
     // Create subfolders
+    await this.findOrCreateFolder('user', this.rootFolderId);
+    await this.findOrCreateFolder(STORAGE_CONFIG.SETTINGS_FOLDER, this.rootFolderId);
     await this.findOrCreateFolder(STORAGE_CONFIG.ACCOUNTS_FOLDER, this.rootFolderId);
     await this.findOrCreateFolder(STORAGE_CONFIG.CATEGORIES_FOLDER, this.rootFolderId);
     await this.findOrCreateFolder(STORAGE_CONFIG.PERIODS_FOLDER, this.rootFolderId);
@@ -45,7 +39,6 @@ export class GoogleDriveClient {
    */
   private async findOrCreateFolder(folderName: string, parentId: string | null): Promise<string> {
     // Search for existing folder
-    
     const query = parentId
       ? `name='${folderName}' and '${parentId}' in parents and mimeType='${STORAGE_CONFIG.MIME_FOLDER}' and trashed=false`
       : `name='${folderName}' and mimeType='${STORAGE_CONFIG.MIME_FOLDER}' and trashed=false`;
@@ -57,7 +50,6 @@ export class GoogleDriveClient {
       }
     );
 
-    //hidden check for if searchResponse is not 200 status
     if (!searchResponse.ok) {
       const error = await searchResponse.text();
       throw new Error(
@@ -76,7 +68,6 @@ export class GoogleDriveClient {
       name: folderName,
       mimeType: STORAGE_CONFIG.MIME_FOLDER,
       ...(parentId && { parents: [parentId] })
-      
     };
 
     const createResponse = await fetch('https://www.googleapis.com/drive/v3/files', {
@@ -88,7 +79,6 @@ export class GoogleDriveClient {
       body: JSON.stringify(metadata)
     });
 
-    //again hidden check for if createResponse is not 200 status
     if (!createResponse.ok) {
       const error = await createResponse.text();
       throw new Error(
@@ -102,7 +92,7 @@ export class GoogleDriveClient {
 
   /**
    * Get file ID by path relative to root folder
-   * @param filePath - Path like "user.json" or "periods/abc-123.json"
+   * @param filePath - Path like "user/user.json" or "periods/abc-123.json"
    * @returns File ID or null if not found
    */
   async getFileId(filePath: string): Promise<string | null> {
@@ -146,7 +136,7 @@ export class GoogleDriveClient {
 
   /**
    * Read JSON file content
-   * @param filePath - Path like "user.json" or "periods/abc-123.json"
+   * @param filePath - Path like "user/user.json" or "periods/abc-123.json"
    * @returns Parsed JSON object or null if file doesn't exist
    */
   async readFile<T>(filePath: string): Promise<T | null> {
@@ -173,7 +163,7 @@ export class GoogleDriveClient {
    * Write JSON file content
    * Creates new file or updates existing file.
    * 
-   * @param filePath - Path like "user.json" or "periods/abc-123.json"
+   * @param filePath - Path like "user/user.json" or "periods/abc-123.json"
    * @param content - Object to serialize as JSON
    */
   async writeFile<T>(filePath: string, content: T): Promise<void> {
@@ -205,7 +195,6 @@ export class GoogleDriveClient {
       // Get parent folder ID
       let parentId = this.rootFolderId!;
       if (parts.length > 1) {
-        const folderPath = parts.slice(0, -1).join('/');
         for (const folder of parts.slice(0, -1)) {
           parentId = await this.findOrCreateFolder(folder, parentId);
         }
@@ -248,7 +237,7 @@ export class GoogleDriveClient {
   /**
    * List all files in a folder
    * @param folderPath - Path like "periods" or "accounts"
-   * @returns Array of file IDs
+   * @returns Array of file IDs and names
    */
   async listFiles(folderPath: string): Promise<{ id: string; name: string }[]> {
     if (!this.rootFolderId) {

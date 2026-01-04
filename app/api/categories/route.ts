@@ -42,9 +42,9 @@ export async function POST(request: Request) {
 
     const { name, monthly_limit } = await request.json();
 
-    if (!name || monthly_limit === undefined) {
+    if (!name) {
       return NextResponse.json(
-        { error: 'name and monthly_limit are required' },
+        { error: 'name is required' },
         { status: 400 }
       );
     }
@@ -55,7 +55,7 @@ export async function POST(request: Request) {
     const newCategory = await storage.categoryStorage.createCategory(
       user.user_id,
       name,
-      Number(monthly_limit)
+      monthly_limit === null ? null : Number(monthly_limit)
     );
 
     return NextResponse.json({ category: newCategory });

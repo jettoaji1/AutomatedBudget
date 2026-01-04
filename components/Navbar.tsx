@@ -15,6 +15,7 @@ export function Navbar() {
     { href: '/dashboard', label: 'Dashboard' },
     { href: '/transactions', label: 'Transactions' },
     { href: '/categories', label: 'Categories' },
+    { href: '/settings', label: 'Settings' },
   ];
 
   return (
@@ -25,7 +26,7 @@ export function Navbar() {
             <div className="flex-shrink-0 flex items-center">
               <span className="text-xl font-bold text-blue-600">Budget Tool</span>
             </div>
-            <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
+            <div className="ml-6 flex space-x-8">
               {navItems.map((item) => (
                 <Link
                   key={item.href}

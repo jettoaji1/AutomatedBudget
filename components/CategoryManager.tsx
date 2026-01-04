@@ -4,7 +4,7 @@ import { useState } from 'react';
 interface Category {
   category_id: string;
   name: string;
-  monthly_limit: number;
+  monthly_limit: number | null;
   is_default: boolean;
 }
 
@@ -24,7 +24,7 @@ export function CategoryManager({ categories, onRefresh }: CategoryManagerProps)
   const startEdit = (category: Category) => {
     setEditingId(category.category_id);
     setEditName(category.name);
-    setEditLimit(category.monthly_limit.toString());
+    setEditLimit(category.monthly_limit === null ? '' : category.monthly_limit.toString());
   };
 
   const cancelEdit = () => {
@@ -40,7 +40,7 @@ export function CategoryManager({ categories, onRefresh }: CategoryManagerProps)
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: editName,
-          monthly_limit: parseFloat(editLimit),
+          monthly_limit: editLimit.trim() === '' ? null : parseFloat(editLimit),
         }),
       });
 
@@ -74,7 +74,7 @@ export function CategoryManager({ categories, onRefresh }: CategoryManagerProps)
 
   const addCategory = async () => {
     if (!newName.trim() || !newLimit) {
-      alert('Please enter both name and limit');
+      alert('Please enter both name');
       return;
     }
 
@@ -84,7 +84,7 @@ export function CategoryManager({ categories, onRefresh }: CategoryManagerProps)
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: newName,
-          monthly_limit: parseFloat(newLimit),
+          monthly_limit: newLimit.trim() === '' ? null : parseFloat(newLimit),
         }),
       });
 
@@ -146,7 +146,7 @@ export function CategoryManager({ categories, onRefresh }: CategoryManagerProps)
                     )}
                   </h3>
                   <p className="text-sm text-gray-500">
-                    Limit: £{category.monthly_limit.toFixed(2)}
+                    Limit: {category.monthly_limit === null ? 'No limit' : `£${category.monthly_limit.toFixed(2)}`}
                   </p>
                 </div>
                 <div className="flex space-x-2">

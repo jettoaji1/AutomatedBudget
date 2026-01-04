@@ -40,7 +40,8 @@ export async function PATCH(
       category.name = updates.name;
     }
     if (updates.monthly_limit !== undefined) {
-      category.monthly_limit = Number(updates.monthly_limit);
+      category.monthly_limit =
+       updates.monthly_limit === null ? null : Number(updates.monthly_limit);
     }
 
     await storage.categoryStorage.updateCategory(category);

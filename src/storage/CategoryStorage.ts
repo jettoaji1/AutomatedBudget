@@ -120,7 +120,7 @@ export class CategoryStorage {
   async createCategory(
     user_id: string,
     name: string,
-    monthly_limit: number
+    monthly_limit: number | null
   ): Promise<Category> {
     const collection = await this.driveClient.readFile<CategoriesCollection>(
       STORAGE_CONFIG.CATEGORIES_FILE

@@ -4,8 +4,11 @@
  * Storage configuration and file path constants
  * 
  * Google Drive folder structure:
- * /BudgetingApp/           (root folder)
- * ├── user.json
+* /BudgetingApp/           (root folder)
+ * ├── user/
+ * │   └── user.json
+ * ├── settings/
+ * │   └── settings.json
  * ├── accounts/
  * │   └── {account_id}.json
  * ├── categories/
@@ -22,6 +25,8 @@ export const STORAGE_CONFIG = {
   
   // File paths
   USER_FILE: 'user/user.json',
+  SETTINGS_FOLDER: 'settings',
+  SETTINGS_FILE: 'settings/settings.json',
   ACCOUNTS_FOLDER: 'accounts',
   CATEGORIES_FOLDER: 'categories',
   CATEGORIES_FILE: 'categories/categories.json',
