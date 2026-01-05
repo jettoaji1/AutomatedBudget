@@ -7,7 +7,7 @@ import { createStorageManager } from '@/lib/drive-server';
 interface CategorySummary {
   category_id: string;
   name: string;
-  monthly_limit: number;
+  monthly_limit: number | null;
   spent: number;
   remaining: number;
   percentage: number;
@@ -61,15 +61,20 @@ export async function GET() {
           category.category_id
         );
 
+        const limit = category.monthly_limit;
+
         return {
           category_id: category.category_id,
           name: category.name,
           monthly_limit: category.monthly_limit,
           spent,
-          remaining: Math.max(0, category.monthly_limit - spent),
-          percentage: category.monthly_limit > 0 
-            ? Math.round((spent / category.monthly_limit) * 100)
-            : 0,
+          remaining: limit === null ? 0 : limit - spent,
+          percentage:
+            limit === null
+              ? 0
+              : limit === 0
+                ? spent > 0 ? 100 : 0
+                : Math.round((spent / limit) * 100),
         };
       })
     );
