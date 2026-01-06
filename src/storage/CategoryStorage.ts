@@ -122,11 +122,30 @@ export class CategoryStorage {
     name: string,
     monthly_limit: number | null
   ): Promise<Category> {
-    const collection = await this.driveClient.readFile<CategoriesCollection>(
-      STORAGE_CONFIG.CATEGORIES_FILE
-    ) || { categories: [] };
+    const collection =
+      (await this.driveClient.readFile<CategoriesCollection>(
+        STORAGE_CONFIG.CATEGORIES_FILE
+      )) || { categories: [] };
 
-    const newCategory = createCategory(user_id, name, monthly_limit, false);
+    const normalizedName = name.trim();
+    if (!normalizedName) {
+      throw new Error("Category name cannot be empty");
+    }
+
+    // Prevent duplicates (case-insensitive) for this user among ACTIVE categories.
+    const existing = collection.categories.find((c) => {
+      const sameUser = c.user_id === user_id;
+      const sameName = (c.name || "").trim().toLowerCase() === normalizedName.toLowerCase();
+      const isActive = c.archived_at === null;
+      return sameUser && sameName && isActive;
+    });
+
+    if (existing) {
+      // Return existing instead of creating a duplicate.
+      return existing;
+    }
+
+    const newCategory = createCategory(user_id, normalizedName, monthly_limit, false);
     collection.categories.push(newCategory);
 
     await this.driveClient.writeFile(STORAGE_CONFIG.CATEGORIES_FILE, collection);

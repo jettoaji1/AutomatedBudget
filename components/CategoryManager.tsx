@@ -20,6 +20,7 @@ export function CategoryManager({ categories, onRefresh }: CategoryManagerProps)
   const [newName, setNewName] = useState('');
   const [newLimit, setNewLimit] = useState('');
   const [isAdding, setIsAdding] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const startEdit = (category: Category) => {
     setEditingId(category.category_id);
@@ -34,6 +35,9 @@ export function CategoryManager({ categories, onRefresh }: CategoryManagerProps)
   };
 
   const saveEdit = async (categoryId: string) => {
+    if (isSaving) return;
+
+    setIsSaving(true);
     try {
       const response = await fetch(`/api/categories/${categoryId}`, {
         method: 'PATCH',
@@ -50,12 +54,16 @@ export function CategoryManager({ categories, onRefresh }: CategoryManagerProps)
       await onRefresh();
     } catch (err) {
       alert('Failed to update category');
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const archiveCategory = async (categoryId: string) => {
+    if (isSaving) return;
     if (!confirm('Are you sure you want to archive this category?')) return;
 
+    setIsSaving(true);
     try {
       const response = await fetch(`/api/categories/${categoryId}/archive`, {
         method: 'POST',
@@ -69,15 +77,20 @@ export function CategoryManager({ categories, onRefresh }: CategoryManagerProps)
       await onRefresh();
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to archive category');
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const addCategory = async () => {
-    if (!newName.trim() || !newLimit) {
-      alert('Please enter both name');
+    if (isSaving) return;
+
+    if (!newName.trim()) {
+      alert('Please enter a name');
       return;
     }
 
+    setIsSaving(true);
     try {
       const response = await fetch('/api/categories', {
         method: 'POST',
@@ -96,6 +109,8 @@ export function CategoryManager({ categories, onRefresh }: CategoryManagerProps)
       await onRefresh();
     } catch (err) {
       alert('Failed to create category');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -110,6 +125,7 @@ export function CategoryManager({ categories, onRefresh }: CategoryManagerProps)
                   type="text"
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
+                  disabled={isSaving}
                   className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                   placeholder="Category name"
                 />
@@ -117,6 +133,7 @@ export function CategoryManager({ categories, onRefresh }: CategoryManagerProps)
                   type="number"
                   value={editLimit}
                   onChange={(e) => setEditLimit(e.target.value)}
+                  disabled={isSaving}
                   className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                   placeholder="Monthly limit"
                   step="0.01"
@@ -124,13 +141,24 @@ export function CategoryManager({ categories, onRefresh }: CategoryManagerProps)
                 <div className="flex space-x-2">
                   <button
                     onClick={() => saveEdit(category.category_id)}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                    disabled={isSaving}
+                    className={`px-4 py-2 text-white rounded-md ${
+                      isSaving
+                        ? 'bg-blue-400 cursor-not-allowed'
+                        : 'bg-blue-600 hover:bg-blue-700'
+                    }`}
                   >
-                    Save
+                    {isSaving ? 'Saving...' : 'Save'}
                   </button>
+
                   <button
                     onClick={cancelEdit}
-                    className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400"
+                    disabled={isSaving}
+                    className={`px-4 py-2 rounded-md ${
+                      isSaving
+                      ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                      : 'bg-gray-300 text-gray-700 hover:bg-gray-400'
+                    }`}
                   >
                     Cancel
                   </button>
@@ -152,16 +180,26 @@ export function CategoryManager({ categories, onRefresh }: CategoryManagerProps)
                 <div className="flex space-x-2">
                   <button
                     onClick={() => startEdit(category)}
-                    className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+                    disabled={isSaving}
+                    className={`px-3 py-1 text-sm rounded ${
+                      isSaving
+                        ? 'bg-blue-50 text-blue-300 cursor-not-allowed'
+                        : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                    }`}
                   >
                     Edit
                   </button>
                   {!category.is_default && (
                     <button
                       onClick={() => archiveCategory(category.category_id)}
-                      className="px-3 py-1 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200"
+                      disabled={isSaving}
+                      className={`px-3 py-1 text-sm rounded ${
+                        isSaving
+                          ? 'bg-red-50 text-red-300 cursor-not-allowed'
+                          : 'bg-red-100 text-red-700 hover:bg-red-200'
+                      }`}
                     >
-                      Archive
+                      {isSaving ? 'Archiving...' : 'Archive'}
                     </button>
                   )}
                 </div>
@@ -178,31 +216,49 @@ export function CategoryManager({ categories, onRefresh }: CategoryManagerProps)
             type="text"
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
-            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+            disabled={isSaving}
+            className={`block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
+              isSaving ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
             placeholder="Category name"
           />
+
           <input
             type="number"
             value={newLimit}
             onChange={(e) => setNewLimit(e.target.value)}
-            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+            disabled={isSaving}
+            className={`block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
+              isSaving ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
             placeholder="Monthly limit"
             step="0.01"
           />
           <div className="flex space-x-2">
             <button
               onClick={addCategory}
-              className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+              disabled={isSaving}
+              className={`px-4 py-2 text-white rounded-md ${
+                isSaving
+                  ? 'bg-green-400 cursor-not-allowed'
+                  : 'bg-green-600 hover:bg-green-700'
+              }`}
             >
-              Add Category
+              {isSaving ? 'Adding...' : 'Add Category'}
             </button>
             <button
               onClick={() => {
+                if (isSaving) return;
                 setIsAdding(false);
                 setNewName('');
                 setNewLimit('');
               }}
-              className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400"
+              disabled={isSaving}
+              className={`px-4 py-2 rounded-md ${
+                isSaving
+                  ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                  : 'bg-gray-300 text-gray-700 hover:bg-gray-400'
+              }`}
             >
               Cancel
             </button>
@@ -211,7 +267,12 @@ export function CategoryManager({ categories, onRefresh }: CategoryManagerProps)
       ) : (
         <button
           onClick={() => setIsAdding(true)}
-          className="w-full px-4 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 font-medium"
+          disabled={isSaving}
+          className={`w-full px-4 py-3 text-white rounded-md font-medium ${
+            isSaving
+              ? 'bg-green-400 cursor-not-allowed'
+              : 'bg-green-600 hover:bg-green-700'
+          }`}
         >
           + Add New Category
         </button>
