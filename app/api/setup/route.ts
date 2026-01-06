@@ -16,7 +16,7 @@ export async function POST() {
         { status: 401 }
       );
     }
-
+    
     const storage = await createStorageManager(session.accessToken);
 
     // 1. Get or create user

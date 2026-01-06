@@ -93,11 +93,6 @@ export const authOptions: NextAuthOptions = {
 
       // 1) Initial sign-in: store tokens + expiry from Google
       if (account) {
-        console.log("Google account scope:", (account as any).scope);
-        console.log("Has access token?", Boolean(account.access_token));
-        console.log("Has refresh token?", Boolean(account.refresh_token));
-        console.log("Token expires_at:", (account as any).expires_at);
-
         // account.expires_at is seconds since epoch (provider-dependent)
         const expiresAtMs =
           typeof account.expires_at === "number"
