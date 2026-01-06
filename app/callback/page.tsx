@@ -1,32 +1,45 @@
-export default async function CallbackPage({
+'use client';
+
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+
+export default function CallbackPage({
   searchParams,
 }: {
-  searchParams: Promise<{
+  searchParams: {
     code?: string;
-    scope?: string;
     error?: string;
     error_description?: string;
-  }>;
+  };
 }) {
-  const sp = await searchParams;
+  const router = useRouter();
+
+  useEffect(() => {
+    if (searchParams.error) return;
+
+    if (!searchParams.code) return;
+
+    (async () => {
+      const res = await fetch('/api/truelayer/exchange', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: searchParams.code }),
+      });
+
+      if (res.ok) {
+        router.replace('/dashboard');
+      } else {
+        router.replace('/settings');
+      }
+    })();
+  }, [searchParams, router]);
 
   return (
-    <main style={{ padding: 24, fontFamily: "system-ui" }}>
-      <h1>TrueLayer Callback</h1>
-
-      {sp.error ? (
-        <>
-          <p><b>Error:</b> {sp.error}</p>
-          <p><b>Description:</b> {sp.error_description}</p>
-        </>
-      ) : (
-        <>
-          <p>Copy this <b>code</b> value:</p>
-          <pre style={{ padding: 12, background: "#f4f4f5", borderRadius: 8 }}>
-            {sp.code ?? "No code found"}
-          </pre>
-        </>
-      )}
+    <main className="flex items-center justify-center min-h-screen">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+        <p className="text-gray-600">Connecting your bank…</p>
+      </div>
     </main>
   );
 }

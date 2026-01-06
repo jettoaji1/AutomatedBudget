@@ -31,6 +31,8 @@ export const STORAGE_CONFIG = {
   CATEGORIES_FOLDER: 'categories',
   CATEGORIES_FILE: 'categories/categories.json',
   PERIODS_FOLDER: 'periods',
+  TRUELAYER_FOLDER: 'truelayer',
+  TRUELAYER_TOKEN_FILE: 'truelayer/tokens.json',
   
   // MIME types
   MIME_JSON: 'application/json',

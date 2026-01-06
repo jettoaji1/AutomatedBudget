@@ -26,6 +26,7 @@ export class GoogleDriveClient {
     // Create subfolders
     await this.findOrCreateFolder('user', this.rootFolderId);
     await this.findOrCreateFolder(STORAGE_CONFIG.SETTINGS_FOLDER, this.rootFolderId);
+    await this.findOrCreateFolder(STORAGE_CONFIG.TRUELAYER_FOLDER, this.rootFolderId);
     await this.findOrCreateFolder(STORAGE_CONFIG.ACCOUNTS_FOLDER, this.rootFolderId);
     await this.findOrCreateFolder(STORAGE_CONFIG.CATEGORIES_FOLDER, this.rootFolderId);
     await this.findOrCreateFolder(STORAGE_CONFIG.PERIODS_FOLDER, this.rootFolderId);

@@ -41,3 +41,11 @@ export async function createStorageManager(accessToken: string): Promise<Storage
   await manager.initialize();
   return manager;
 }
+
+export async function createDriveStorageManager(): Promise<StorageManager> {
+  const manager = new StorageManager(
+    process.env.GOOGLE_SERVICE_ACCESS_TOKEN!
+  );
+  await manager.initialize();
+  return manager;
+}
