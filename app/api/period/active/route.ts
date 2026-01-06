@@ -53,31 +53,40 @@ export async function GET() {
     // Get all categories
     const categories = await storage.categoryStorage.getActiveCategories(user.user_id);
 
-    // Compute spending per category
-    const categorySummaries: CategorySummary[] = await Promise.all(
-      categories.map(async (category) => {
-        const spent = await storage.periodStorage.getCategorySpending(
-          periodData.period.period_id,
-          category.category_id
-        );
+    // Compute spending per category in ONE pass (fast)
+// Assumes periodData includes transactions (most likely does if your period JSON has transactions array)
+    const transactions = (periodData as any).transactions ?? [];
 
-        const limit = category.monthly_limit;
+    const spentByCategory: Record<string, number> = {};
 
-        return {
-          category_id: category.category_id,
-          name: category.name,
-          monthly_limit: category.monthly_limit,
-          spent,
-          remaining: limit === null ? 0 : limit - spent,
-          percentage:
-            limit === null
-              ? 0
-              : limit === 0
-                ? spent > 0 ? 100 : 0
-                : Math.round((spent / limit) * 100),
-        };
-      })
-    );
+    for (const tx of transactions) {
+      const catId = tx.category_id;
+      if (!catId) continue;
+
+      // You store spending as negative numbers (e.g. -30). Convert to positive spend.
+      const spend = typeof tx.amount === 'number' && tx.amount < 0 ? Math.abs(tx.amount) : 0;
+
+      spentByCategory[catId] = (spentByCategory[catId] ?? 0) + spend;
+    }
+
+    const categorySummaries: CategorySummary[] = categories.map((category) => {
+      const spent = spentByCategory[category.category_id] ?? 0;
+      const limit = category.monthly_limit; // number | null
+
+      return {
+        category_id: category.category_id,
+        name: category.name,
+        monthly_limit: limit,
+        spent,
+        remaining: limit === null ? 0 : limit - spent,
+        percentage:
+          limit === null
+            ? 0
+            : limit === 0
+              ? spent > 0 ? 100 : 0
+              : Math.round((spent / limit) * 100),
+      };
+    });
 
     return NextResponse.json({
       period: periodData.period,
