@@ -1,45 +1,58 @@
+// app/callback/page.tsx
 'use client';
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 
-export default function CallbackPage({
-  searchParams,
-}: {
-  searchParams: {
-    code?: string;
-    error?: string;
-    error_description?: string;
-  };
-}) {
+export default function CallbackPage() {
+  const sp = useSearchParams();
   const router = useRouter();
+  const [msg, setMsg] = useState('Connecting your bank…');
 
   useEffect(() => {
-    if (searchParams.error) return;
+    const run = async () => {
+      const error = sp.get('error');
+      const errorDesc = sp.get('error_description');
+      const code = sp.get('code');
 
-    if (!searchParams.code) return;
-
-    (async () => {
-      const res = await fetch('/api/truelayer/exchange', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: searchParams.code }),
-      });
-
-      if (res.ok) {
-        router.replace('/dashboard');
-      } else {
-        router.replace('/settings');
+      if (error) {
+        setMsg(`TrueLayer error: ${error}${errorDesc ? ` — ${errorDesc}` : ''}`);
+        return;
       }
-    })();
-  }, [searchParams, router]);
+
+      if (!code) {
+        setMsg('No authorization code found in callback.');
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/truelayer/exchange', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code }),
+        });
+
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+          setMsg(`Token exchange failed: ${data?.error ?? 'Unknown error'}`);
+          return;
+        }
+
+        setMsg('Bank connected! Redirecting…');
+        router.replace('/dashboard');
+      } catch (e) {
+        setMsg('Token exchange failed (network/server error).');
+      }
+    };
+
+    run();
+  }, [sp, router]);
 
   return (
-    <main className="flex items-center justify-center min-h-screen">
-      <div className="text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-        <p className="text-gray-600">Connecting your bank…</p>
-      </div>
+    <main style={{ padding: 24, fontFamily: 'system-ui' }}>
+      <h1>TrueLayer Callback</h1>
+      <p>{msg}</p>
     </main>
   );
 }
