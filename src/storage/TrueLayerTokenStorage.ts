@@ -34,29 +34,41 @@ export class TrueLayerTokenStorage {
     return tokens ?? null;
   }
 
-  /**
-   * Always returns a VALID access token.
-   * Automatically refreshes if expired.
-   */
+
   async getValidAccessToken(): Promise<string> {
-    const tokens = await this.getTokens();
-
-    if (!tokens) {
-      throw new Error('No TrueLayer tokens found. User must re-auth.');
-    }
-
-    // 60 second safety buffer
     const bufferMs = 60_000;
 
-    if (Date.now() < tokens.expires_at - bufferMs) {
-      return tokens.access_token;
+    const tokens = await this.getTokens();
+    if (!tokens) throw new Error('No TrueLayer tokens found. User must re-auth.');
+
+    // still valid
+    if (Date.now() < tokens.expires_at - bufferMs) return tokens.access_token;
+
+    // try refresh
+    try {
+      const refreshed = await this.refreshAccessToken(tokens.refresh_token);
+      await this.saveTokens(refreshed);
+      return refreshed.access_token;
+    } catch (err) {
+      // If refresh token rotated in another concurrent request,
+      // re-read tokens.json and try to use the newer token set.
+      const msg = err instanceof Error ? err.message : String(err);
+
+      if (msg.includes('invalid_grant')) {
+        const latest = await this.getTokens();
+
+        if (latest && latest.updated_at !== tokens.updated_at) {
+          if (Date.now() < latest.expires_at - bufferMs) return latest.access_token;
+
+          // latest exists but expired -> attempt refresh with latest refresh_token once
+          const refreshed2 = await this.refreshAccessToken(latest.refresh_token);
+          await this.saveTokens(refreshed2);
+          return refreshed2.access_token;
+        }
+      }
+
+      throw err;
     }
-
-    // 🔄 Refresh token
-    const refreshed = await this.refreshAccessToken(tokens.refresh_token);
-
-    await this.saveTokens(refreshed);
-    return refreshed.access_token;
   }
 
   /**

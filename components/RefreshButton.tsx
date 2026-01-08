@@ -20,29 +20,31 @@ export function RefreshButton({ onRefreshComplete }: RefreshButtonProps) {
   const [result, setResult] = useState<RefreshResult | null>(null);
 
   const handleRefresh = async () => {
+    // ✅ hard guard: prevents double-click / double-fire
+    if (loading) return;
+
     setLoading(true);
     setError(null);
     setResult(null);
 
     try {
-      const response = await fetch('/api/refresh', {
-        method: 'POST',
-      });
+      const response = await fetch('/api/refresh', { method: 'POST' });
 
-      const data = await response.json();
+      // ✅ avoid crashes if response isn't JSON (rare but happens)
+      const data = await response.json().catch(() => ({} as any));
 
       if (!response.ok) {
-        if (data.error === 'RECONNECT_REQUIRED') {
+        if (data?.error === 'RECONNECT_REQUIRED') {
           setError('TrueLayer connection expired. Please reconnect your bank account.');
         } else {
-          setError(data.error || 'Failed to refresh transactions');
+          setError(data?.error || 'Failed to refresh transactions');
         }
         return;
       }
 
-      setResult(data);
-      setLastRefresh(data.lastRefreshedAt);
-      
+      setResult(data as RefreshResult);
+      setLastRefresh((data as RefreshResult).lastRefreshedAt);
+
       // Notify parent to reload data
       onRefreshComplete();
     } catch (err) {
@@ -68,17 +70,32 @@ export function RefreshButton({ onRefreshComplete }: RefreshButtonProps) {
       <button
         onClick={handleRefresh}
         disabled={loading}
+        aria-disabled={loading}
         className={`px-4 py-2 rounded-md font-medium text-white ${
-          loading
-            ? 'bg-blue-400 cursor-not-allowed'
-            : 'bg-blue-600 hover:bg-blue-700'
+          loading ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
         }`}
       >
         {loading ? (
           <span className="flex items-center">
-            <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            <svg
+              className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              ></circle>
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              ></path>
             </svg>
             Refreshing...
           </span>
@@ -88,22 +105,21 @@ export function RefreshButton({ onRefreshComplete }: RefreshButtonProps) {
       </button>
 
       {lastRefresh && !loading && (
-        <p className="text-sm text-gray-600">
-          Last refreshed: {formatTimestamp(lastRefresh)}
-        </p>
+        <p className="text-sm text-gray-600">Last refreshed: {formatTimestamp(lastRefresh)}</p>
       )}
 
       {result && !loading && (
         <div className="text-sm text-green-600">
           Added {result.inserted} new transaction{result.inserted !== 1 ? 's' : ''}
-          {result.deduped > 0 && ` (${result.deduped} duplicate${result.deduped !== 1 ? 's' : ''} skipped)`}
+          {result.deduped > 0 &&
+            ` (${result.deduped} duplicate${result.deduped !== 1 ? 's' : ''} skipped)`}
         </div>
       )}
 
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-md p-3 max-w-md">
           <p className="text-sm text-red-800">{error}</p>
-          {error.includes('reconnect') && (
+          {error.toLowerCase().includes('reconnect') && (
             <p className="text-xs text-red-600 mt-2">
               Contact support or check TrueLayer credentials in settings.
             </p>
