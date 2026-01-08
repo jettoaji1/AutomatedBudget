@@ -81,9 +81,11 @@ export class TrueLayerTokenStorage {
     const data = await response.json();
 
     if (!response.ok) {
-      throw new Error(
-        `TrueLayer token refresh failed: ${JSON.stringify(data)}`
-      );
+      console.error('[TRUELAYER] refresh failed', {
+        status: response.status,
+        data,
+      });
+      throw new Error(`TrueLayer token refresh failed (${response.status}): ${JSON.stringify(data)}`);
     }
 
     return {

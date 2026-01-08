@@ -53,6 +53,8 @@ export async function POST() {
     try {
       trueLayerAccessToken = await tokenStorage.getValidAccessToken();
     } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      console.error('[REFRESH] Token load/refresh failed:', msg);
       // tokens missing/expired/revoked => user must reconnect TrueLayer
       return NextResponse.json({ error: 'RECONNECT_REQUIRED' }, { status: 401 });
     }
