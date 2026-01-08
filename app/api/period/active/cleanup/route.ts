@@ -15,24 +15,34 @@ export async function POST() {
   const account = await storage.accountStorage.getAccountForUser(user.user_id);
   if (!account) return NextResponse.json({ error: 'No account found' }, { status: 404 });
 
-  const periodData = await storage.periodStorage.getCurrentPeriod(user.user_id, account.account_id);
-  if (!periodData) return NextResponse.json({ error: 'No active period found' }, { status: 404 });
+	const periodData = await storage.periodStorage.getCurrentPeriod(
+		user.user_id,
+		account.account_id
+	);
+	if (!periodData) {
+		return NextResponse.json({ error: 'No active period found' }, { status: 404 });
+	}
 
-  const start = new Date(periodData.period.start_date).getTime();
-  const end = new Date(periodData.period.end_date).getTime();
+	const start = new Date(periodData.period.start_date).getTime();
+	const end = new Date(periodData.period.end_date).getTime();
 
-  const before = periodData.transactions.length;
+	const before = periodData.transactions.length;
 
-  periodData.transactions = periodData.transactions.filter(tx => {
-    const t = new Date(tx.date).getTime();
-    return t >= start && t < end;
-  });
+	periodData.transactions = periodData.transactions.filter(tx => {
+		// 1) Remove sandbox/fake transactions
+		if (tx.external_id?.includes('sandbox')) return false;
 
-  await storage.periodStorage.savePeriodData(periodData);
+		// 2) Keep only transactions inside the active period
+		const t = new Date(tx.date).getTime();
+		return t >= start && t < end;
+	});
 
-  return NextResponse.json({
-    removed: before - periodData.transactions.length,
-    remaining: periodData.transactions.length,
-    period: periodData.period,
-  });
+	await storage.periodStorage.savePeriodData(periodData);
+
+	return NextResponse.json({
+		removed: before - periodData.transactions.length,
+		remaining: periodData.transactions.length,
+		period: periodData.period,
+	});
+
 }
