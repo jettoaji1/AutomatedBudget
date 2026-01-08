@@ -337,4 +337,9 @@ export class PeriodStorage {
     
     return total;
   }
+
+  async savePeriodData(periodData: PeriodData): Promise<void> {
+    const filePath = getPeriodFilePath(periodData.period.period_id);
+    await this.driveClient.writeFile(filePath, periodData);
+  }
 }

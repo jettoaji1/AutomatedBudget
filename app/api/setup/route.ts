@@ -37,26 +37,58 @@ export async function POST() {
     // 3. Initialize categories (ensures default "Other" exists)
     const categories = await storage.categoryStorage.initializeCategories(user.user_id);
 
-    // 4. Ensure active period exists
+    // 4. Ensure active period exists (based on user settings, not "today")
     let currentPeriod = await storage.periodStorage.getCurrentPeriod(
       user.user_id,
       account.account_id
     );
 
-    if (!currentPeriod) {
-      const periodType = PeriodType.FIXED_DATE;
-      const anchorDate = formatDate(new Date());
-      const startingBalance = 0;
+    // Load settings (your /api/settings exists, so this storage should exist too)
+    const settings = await storage.settingsStorage.getOrCreateSettings(user.user_id);
 
+    // Anchor date = this month on anchor_day (used as reference for period calc)
+    const now = new Date();
+    const anchorDateThisMonth = new Date(now.getFullYear(), now.getMonth(), settings.anchor_day);
+    const anchorDate = formatDate(anchorDateThisMonth);
+
+    const startingBalance = 0;
+
+    // If no current period exists, create it correctly
+    if (!currentPeriod) {
       const newPeriod = await storage.periodStorage.createNextPeriod(
         user.user_id,
         account.account_id,
-        periodType,
+        settings.period_type,
         anchorDate,
         startingBalance
       );
 
       currentPeriod = await storage.periodStorage.getPeriod(newPeriod.period_id);
+    } else {
+      // If a period exists but was created with the wrong anchor (e.g. Dec 30), replace it
+      // by creating a new correct period (old one remains as historical file).
+      const { start_date: expectedStart, end_date: expectedEnd } = require('@/src/utils/dateUtils').calculatePeriodDates(
+        new Date(),
+        settings.period_type,
+        require('@/src/utils/dateUtils').parseDate(anchorDate)
+      );
+
+      if (
+        currentPeriod.period.start_date !== expectedStart ||
+        currentPeriod.period.end_date !== expectedEnd
+      ) {
+        const newPeriod = await storage.periodStorage.createPeriod(
+          user.user_id,
+          account.account_id,
+          expectedStart,
+          expectedEnd,
+          startingBalance,
+          settings.period_type,
+          anchorDate
+        );
+
+        currentPeriod = await storage.periodStorage.getPeriod(newPeriod.period_id);
+      }
     }
 
     return NextResponse.json({

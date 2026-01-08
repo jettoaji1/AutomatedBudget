@@ -14,8 +14,6 @@ export async function POST() {
   try {
     // 1) Auth
     const session = await getServerSession(authOptions);
-    console.log('[REFRESH] session exists:', !!session);
-    console.log('[REFRESH] has google access token:', !!session?.accessToken);
     if (!session?.accessToken) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
@@ -49,16 +47,13 @@ export async function POST() {
     }
 
     // 6) Load a VALID TrueLayer access token from Drive (auto refresh)
-    console.log('[REFRESH] Loading TrueLayer tokens from Drive...');
     const tokenStorage = new TrueLayerTokenStorage(storage.driveClient);
 
     let trueLayerAccessToken: string;
     try {
       trueLayerAccessToken = await tokenStorage.getValidAccessToken();
-      console.log('[REFRESH] Got valid TrueLayer access token');
     } catch (e) {
       // tokens missing/expired/revoked => user must reconnect TrueLayer
-      console.error('[REFRESH] Token load/refresh failed:', e);
       return NextResponse.json({ error: 'RECONNECT_REQUIRED' }, { status: 401 });
     }
 
@@ -76,9 +71,7 @@ export async function POST() {
 
     // Option B: If not stored yet, fetch accounts from TrueLayer and pick the first
     if (!trueLayerAccountId) {
-      console.log('[REFRESH] Fetching TrueLayer accounts...');
       const accounts = await trueLayerClient.fetchAccounts();
-      console.log('[REFRESH] TrueLayer accounts:', accounts);
 
       if (!accounts || accounts.length === 0) {
         return NextResponse.json(
@@ -102,7 +95,6 @@ export async function POST() {
     const now = new Date();
     const to = periodEnd > now ? now : periodEnd;
 
-    console.log('[REFRESH] Fetching transactions for account:', trueLayerAccountId);
     const externalTransactions = await trueLayerClient.fetchTransactions(
       trueLayerAccountId,
       from.toISOString(),
