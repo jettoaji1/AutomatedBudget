@@ -204,6 +204,28 @@ export default function SettingsPage() {
           </p>
         </div>
 
+        <div className="border-t border-gray-200 pt-6">
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            Bank Connection
+          </h3>
+          <p className="text-sm text-gray-600 mb-4">
+            Connect your bank via TrueLayer to automatically import transactions.
+          </p>
+
+          <a
+            href={`https://auth.truelayer.com/?response_type=code&client_id=${process.env.NEXT_PUBLIC_TRUELAYER_CLIENT_ID}&scope=accounts transactions&redirect_uri=${encodeURIComponent(
+              process.env.NEXT_PUBLIC_TRUELAYER_REDIRECT_URI!
+            )}&providers=uk-ob-all&prompt=consent`}
+            className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 font-medium"
+          >
+            Connect / Reconnect Bank
+          </a>
+
+          <p className="mt-3 text-xs text-gray-500">
+            You only need to do this once unless access expires.
+          </p>
+        </div>
+
         <div className="flex items-center justify-end space-x-4 pt-4">
           <button
             onClick={fetchSettings}
