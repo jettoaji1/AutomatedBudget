@@ -91,20 +91,23 @@ export class PeriodStorage {
    * @returns PeriodData object or null if no active period
    */
   async getCurrentPeriod(user_id: string, account_id: string): Promise<PeriodData | null> {
-    // Note: This is inefficient - we need to read all period files
-    // In production, we'd maintain an index or metadata file
-    // For V1 MVP, this is acceptable given limited data volume
-    
     const today = formatDate(new Date());
     const allPeriods = await this.listAllPeriods(user_id, account_id);
-    
-    for (const periodData of allPeriods) {
-      if (isDateInPeriod(today, periodData.period.start_date, periodData.period.end_date)) {
-        return periodData;
-      }
-    }
-    
-    return null;
+
+    const candidates = allPeriods.filter((p) =>
+      isDateInPeriod(today, p.period.start_date, p.period.end_date)
+    );
+
+    if (candidates.length === 0) return null;
+
+    // Prefer the most recently created period (fixes overlapping periods)
+    candidates.sort((a, b) => {
+      const ac = new Date(a.period.created_at ?? 0).getTime();
+      const bc = new Date(b.period.created_at ?? 0).getTime();
+      return bc - ac;
+    });
+
+    return candidates[0];
   }
 
   /**
