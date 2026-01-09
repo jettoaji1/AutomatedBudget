@@ -1,7 +1,7 @@
 // app/transactions/page.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { TransactionList } from '@/components/TransactionList';
 
 interface Transaction {
@@ -9,7 +9,7 @@ interface Transaction {
   date: string;
   merchant_name: string;
   description: string;
-  amount: number;
+  amount: number; // negative = spend, positive = income
   category_id: string;
   is_manual_override: boolean;
 }
@@ -24,6 +24,9 @@ export default function TransactionsPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // ✅ MVP: hide income by default
+  const [showIncome, setShowIncome] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -64,13 +67,26 @@ export default function TransactionsPage() {
         throw new Error('Failed to update category');
       }
 
-      // Refresh transactions
       await fetchData();
     } catch (err) {
       console.error('Update error:', err);
       alert('Failed to update transaction category');
     }
   };
+
+  const spendingTx = useMemo(
+    () => transactions.filter((t) => t.amount < 0),
+    [transactions]
+  );
+
+  const incomeTx = useMemo(
+    () => transactions.filter((t) => t.amount > 0),
+    [transactions]
+  );
+
+  const visibleTransactions = useMemo(() => {
+    return showIncome ? transactions : spendingTx;
+  }, [showIncome, transactions, spendingTx]);
 
   if (loading) {
     return (
@@ -92,15 +108,32 @@ export default function TransactionsPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <h1 className="text-3xl font-bold text-gray-900 mb-8">Transactions</h1>
-      
-      {transactions.length === 0 ? (
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-3xl font-bold text-gray-900">Transactions</h1>
+
+        <label className="flex items-center gap-2 text-sm text-gray-700 select-none">
+          <input
+            type="checkbox"
+            checked={showIncome}
+            onChange={(e) => setShowIncome(e.target.checked)}
+            className="h-4 w-4"
+          />
+          Show income
+          <span className="text-gray-500">
+            ({incomeTx.length} income, {spendingTx.length} spend)
+          </span>
+        </label>
+      </div>
+
+      {visibleTransactions.length === 0 ? (
         <div className="bg-white shadow rounded-lg p-8 text-center">
-          <p className="text-gray-500">No transactions found for this period</p>
+          <p className="text-gray-500">
+            {showIncome ? 'No transactions found for this period' : 'No spending transactions found for this period'}
+          </p>
         </div>
       ) : (
         <TransactionList
-          transactions={transactions}
+          transactions={visibleTransactions}
           categories={categories}
           onCategoryChange={handleCategoryChange}
         />

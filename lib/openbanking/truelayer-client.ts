@@ -32,11 +32,22 @@ type TrueLayerAccountsResponse = {
   results: TrueLayerAccount[];
 };
 
+type TrueLayerBalance = {
+  currency: string;
+  available?: number;
+  current?: number;
+  overdraft?: number;
+  update_timestamp?: string;
+};
+
+type TrueLayerBalanceResponse = {
+  results: TrueLayerBalance[];
+};
+
 export class TrueLayerClient implements OpenBankingClient {
   private accessToken: string;
   private baseUrl: string;
 
-  // ✅ Phase 3: token comes from Drive (TrueLayerTokenStorage)
   constructor(accessToken: string) {
     this.accessToken = accessToken;
 
@@ -51,10 +62,6 @@ export class TrueLayerClient implements OpenBankingClient {
     }
   }
 
-  /**
-   * Fetch accounts from TrueLayer
-   * GET /data/v1/accounts
-   */
   async fetchAccounts(): Promise<TrueLayerAccount[]> {
     const url = `${this.baseUrl}/data/v1/accounts`;
 
@@ -79,9 +86,40 @@ export class TrueLayerClient implements OpenBankingClient {
   }
 
   /**
-   * Fetch transactions from TrueLayer for date range
-   * GET /data/v1/accounts/{account_id}/transactions?from=...&to=...
+   * Fetch current balance for an account
+   * GET /data/v1/accounts/{account_id}/balance
    */
+  async fetchCurrentBalance(accountId: string): Promise<number> {
+    const url = `${this.baseUrl}/data/v1/accounts/${accountId}/balance`;
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${this.accessToken}`,
+        Accept: 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        throw new Error('RECONNECT_REQUIRED');
+      }
+      const errorText = await response.text();
+      throw new Error(`TrueLayer API error (${response.status}): ${errorText}`);
+    }
+
+    const data: TrueLayerBalanceResponse = await response.json();
+    const first = data.results?.[0];
+
+    const current = first?.current;
+    const available = first?.available;
+
+    if (typeof current === 'number') return current;
+    if (typeof available === 'number') return available;
+
+    throw new Error('TrueLayer balance response missing current/available');
+  }
+
   async fetchTransactions(
     accountId: string,
     startDate: string,
@@ -114,20 +152,29 @@ export class TrueLayerClient implements OpenBankingClient {
   private normalizeTransaction(tx: TrueLayerTransaction): ExternalTransaction {
     const date = tx.timestamp ?? new Date().toISOString();
 
-    const providerId =
-      (tx as any).transaction_id ??
-      (tx as any).id;
-
+    const providerId = (tx as any).transaction_id ?? (tx as any).id;
     if (!providerId) {
       throw new Error('TrueLayer transaction missing provider ID');
     }
 
+    // Normalize sign based on transaction_type
+    // - DEBIT = money out (spend) => negative
+    // - CREDIT = money in (income) => positive
+    const raw = typeof tx.amount === 'number' ? tx.amount : Number(tx.amount);
+    const abs = Math.abs(raw);
+
+    const normalizedAmount =
+      tx.transaction_type === 'DEBIT' ? -abs :
+      tx.transaction_type === 'CREDIT' ? abs :
+      raw; // fallback if unknown
+
     return {
       external_id: `truelayer|${providerId}`,
       date,
-      amount: tx.amount,
+      amount: normalizedAmount,
       merchant_name: tx.merchant_name,
       description: tx.description || 'No description',
+      transaction_type: tx.transaction_type, // optional but useful later
     };
   }
 }

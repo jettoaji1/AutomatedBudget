@@ -10,6 +10,7 @@ export type ExternalTransaction = {
   amount: number;      // signed number (negative = expense, positive = income)
   merchant_name?: string;
   description: string;
+  transaction_type?: string;
 };
 
 /**

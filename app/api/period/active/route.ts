@@ -57,6 +57,11 @@ export async function GET() {
 // Assumes periodData includes transactions (most likely does if your period JSON has transactions array)
     const transactions = (periodData as any).transactions ?? [];
 
+    const incomeCount = transactions.filter((t: any) => typeof t.amount === 'number' && t.amount > 0).length;
+    const expenseCount = transactions.filter((t: any) => typeof t.amount === 'number' && t.amount < 0).length;
+
+    console.log('[ACTIVE] tx counts', { total: transactions.length, incomeCount, expenseCount });
+
     const spentByCategory: Record<string, number> = {};
 
     for (const tx of transactions) {
