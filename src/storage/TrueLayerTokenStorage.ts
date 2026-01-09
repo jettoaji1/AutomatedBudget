@@ -6,7 +6,7 @@ const TRUELAYER_TOKEN_FILE = 'truelayer/tokens.json';
 
 export type TrueLayerTokens = {
   access_token: string;
-  refresh_token: string;
+  refresh_token?: string;
   expires_at: number; // epoch ms
   token_type: string;
   scope?: string;
@@ -43,10 +43,18 @@ export class TrueLayerTokenStorage {
 
     // still valid
     if (Date.now() < tokens.expires_at - bufferMs) return tokens.access_token;
-
+    if (!tokens.refresh_token) {
+      throw new Error('No refresh_token stored. Reconnect TrueLayer with offline_access enabled.');
+}
     // try refresh
     try {
-      const refreshed = await this.refreshAccessToken(tokens.refresh_token);
+      const refreshToken = tokens.refresh_token;
+      if (!refreshToken) {
+        throw new Error('No refresh_token stored. Reconnect TrueLayer with offline_access enabled.');
+      }
+
+      const refreshed = await this.refreshAccessToken(refreshToken);
+
       await this.saveTokens(refreshed);
       return refreshed.access_token;
     } catch (err) {
@@ -60,7 +68,10 @@ export class TrueLayerTokenStorage {
         if (latest && latest.updated_at !== tokens.updated_at) {
           if (Date.now() < latest.expires_at - bufferMs) return latest.access_token;
 
-          // latest exists but expired -> attempt refresh with latest refresh_token once
+          if (!latest.refresh_token) {
+            throw new Error('No refresh_token stored. Reconnect TrueLayer with offline_access enabled.');
+          }
+
           const refreshed2 = await this.refreshAccessToken(latest.refresh_token);
           await this.saveTokens(refreshed2);
           return refreshed2.access_token;

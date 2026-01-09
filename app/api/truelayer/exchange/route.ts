@@ -31,6 +31,16 @@ export async function POST(req: Request) {
 
     const data = await res.json();
 
+    if (!data.refresh_token) {
+      return NextResponse.json(
+        {
+          error: 'Token exchange succeeded but no refresh_token returned. Ensure offline_access is included in the auth link scope.',
+          details: { scope: data.scope },
+        },
+        { status: 400 }
+      );
+    }
+    
     if (!res.ok) {
       return NextResponse.json({ error: 'Token exchange failed', details: data }, { status: 400 });
     }

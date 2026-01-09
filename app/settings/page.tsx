@@ -1,7 +1,7 @@
 // app/settings/page.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { PeriodType } from '@/src/types/BudgetPeriod';
 
 interface UserSettings {
@@ -28,11 +28,11 @@ export default function SettingsPage() {
   const fetchSettings = async () => {
     try {
       const response = await fetch('/api/settings');
-      
+
       if (!response.ok) {
         throw new Error('Failed to fetch settings');
       }
-      
+
       const data = await response.json();
       setSettings(data.settings);
       setPeriodType(data.settings.period_type);
@@ -101,15 +101,51 @@ export default function SettingsPage() {
 
     return {
       current: {
-        start: currentStart.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
-        end: currentEnd.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
+        start: currentStart.toLocaleDateString('en-GB', {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+        }),
+        end: currentEnd.toLocaleDateString('en-GB', {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+        }),
       },
       next: {
-        start: nextStart.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
-        end: nextEnd.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
+        start: nextStart.toLocaleDateString('en-GB', {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+        }),
+        end: nextEnd.toLocaleDateString('en-GB', {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+        }),
       },
     };
   };
+
+  // ✅ Build TrueLayer connect URL with offline_access so we get refresh_token
+  // ✅ Include balance too since you call /balances
+  const connectUrl = useMemo(() => {
+    const clientId = process.env.NEXT_PUBLIC_TRUELAYER_CLIENT_ID;
+    const redirectUri = process.env.NEXT_PUBLIC_TRUELAYER_REDIRECT_URI;
+
+    if (!clientId || !redirectUri) return null;
+
+    const params = new URLSearchParams({
+      response_type: 'code',
+      client_id: clientId,
+      redirect_uri: redirectUri,
+      scope: 'accounts transactions balance offline_access',
+      providers: 'uk-ob-all',
+      prompt: 'consent',
+    });
+
+    return `https://auth.truelayer.com/?${params.toString()}`;
+  }, []);
 
   if (loading) {
     return (
@@ -139,24 +175,22 @@ export default function SettingsPage() {
 
       <div className="bg-white shadow rounded-lg p-6 space-y-6">
         <div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">
-            Budget Period Settings
-          </h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">Budget Period Settings</h2>
           <p className="text-sm text-gray-600 mb-6">
             Configure how your budget periods are calculated. Changes apply to new periods only.
           </p>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Period Type
-          </label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Period Type</label>
           <select
             value={periodType}
             onChange={(e) => setPeriodType(e.target.value as PeriodType)}
             className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
           >
-            <option value={PeriodType.FIXED_DATE}>Fixed Date (e.g., 1st to 1st of each month)</option>
+            <option value={PeriodType.FIXED_DATE}>
+              Fixed Date (e.g., 1st to 1st of each month)
+            </option>
             <option value={PeriodType.INCOME_ANCHORED}>Income Anchored (payday to payday)</option>
           </select>
         </div>
@@ -170,9 +204,10 @@ export default function SettingsPage() {
             onChange={(e) => setAnchorDay(parseInt(e.target.value))}
             className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
           >
-            {Array.from({ length: 31 }, (_, i) => i + 1).map(day => (
+            {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
               <option key={day} value={day}>
-                {day}{day === 1 ? 'st' : day === 2 ? 'nd' : day === 3 ? 'rd' : 'th'}
+                {day}
+                {day === 1 ? 'st' : day === 2 ? 'nd' : day === 3 ? 'rd' : 'th'}
               </option>
             ))}
           </select>
@@ -205,24 +240,28 @@ export default function SettingsPage() {
         </div>
 
         <div className="border-t border-gray-200 pt-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
-            Bank Connection
-          </h3>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Bank Connection</h3>
           <p className="text-sm text-gray-600 mb-4">
             Connect your bank via TrueLayer to automatically import transactions.
           </p>
 
-          <a
-            href={`https://auth.truelayer.com/?response_type=code&client_id=${process.env.NEXT_PUBLIC_TRUELAYER_CLIENT_ID}&scope=accounts transactions&redirect_uri=${encodeURIComponent(
-              process.env.NEXT_PUBLIC_TRUELAYER_REDIRECT_URI!
-            )}&providers=uk-ob-all&prompt=consent`}
-            className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 font-medium"
-          >
-            Connect / Reconnect Bank
-          </a>
+          {connectUrl ? (
+            <a
+              href={connectUrl}
+              className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 font-medium"
+            >
+              Connect / Reconnect Bank
+            </a>
+          ) : (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+              <p className="text-sm text-yellow-800">
+                Missing NEXT_PUBLIC_TRUELAYER_CLIENT_ID or NEXT_PUBLIC_TRUELAYER_REDIRECT_URI in env.
+              </p>
+            </div>
+          )}
 
           <p className="mt-3 text-xs text-gray-500">
-            You only need to do this once unless access expires.
+            This requests: accounts, transactions, balance, and offline_access (refresh token).
           </p>
         </div>
 
@@ -238,9 +277,7 @@ export default function SettingsPage() {
             onClick={handleSave}
             disabled={saving}
             className={`px-4 py-2 text-sm font-medium text-white rounded-md ${
-              saving
-                ? 'bg-blue-400 cursor-not-allowed'
-                : 'bg-blue-600 hover:bg-blue-700'
+              saving ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
             }`}
           >
             {saving ? 'Saving...' : 'Save Settings'}
