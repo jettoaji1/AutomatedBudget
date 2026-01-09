@@ -90,7 +90,7 @@ export class TrueLayerClient implements OpenBankingClient {
    * GET /data/v1/accounts/{account_id}/balance
    */
   async fetchCurrentBalance(accountId: string): Promise<number> {
-    const url = `${this.baseUrl}/data/v1/accounts/${accountId}/balance`;
+    const url = `${this.baseUrl}/data/v1/accounts/${accountId}/balances`;
 
     const response = await fetch(url, {
       method: 'GET',
