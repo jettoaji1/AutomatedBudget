@@ -13,6 +13,7 @@ export interface UserSettings {
   anchor_day: number;                // Day of month (1-31) for period calculation
   created_at: string;                // ISO 8601 timestamp
   updated_at: string;                // ISO 8601 timestamp
+  last_refreshed_at?: string | null;
 }
 
 /**
@@ -27,5 +28,6 @@ export function createDefaultSettings(user_id: string): UserSettings {
     anchor_day: 1,  // Default: 1st of each month
     created_at: now,
     updated_at: now,
+    last_refreshed_at: null,
   };
 }

@@ -105,10 +105,16 @@ export async function POST() {
     const attempted = internalTransactions.length;
     const deduped = attempted - inserted;
 
+    // ✅ Persist last refresh timestamp (for auto-refresh logic)
+    const settings = await storage.settingsStorage.getOrCreateSettings(user.user_id);
+    const nowIso = new Date().toISOString();
+    settings.last_refreshed_at = nowIso;
+    await storage.settingsStorage.updateSettings(settings);
+
     return NextResponse.json({
       inserted,
       deduped,
-      lastRefreshedAt: new Date().toISOString(),
+      lastRefreshedAt: nowIso,
       currentBalance,
       computedStartingBalance: periodData.period.starting_balance,
     });

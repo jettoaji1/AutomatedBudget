@@ -111,8 +111,11 @@ export function RefreshButton({ onRefreshComplete }: RefreshButtonProps) {
       {result && !loading && (
         <div className="text-sm text-green-600">
           Added {result.inserted} new transaction{result.inserted !== 1 ? 's' : ''}
-          {result.deduped > 0 &&
-            ` (${result.deduped} duplicate${result.deduped !== 1 ? 's' : ''} skipped)`}
+          {result.inserted > 0 && (
+            <p className="text-xs text-gray-600 mt-1">
+              Review and categorise them in the Transactions page.
+            </p>
+          )}
         </div>
       )}
 
