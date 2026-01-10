@@ -18,7 +18,6 @@ export interface Transaction {
   period_id: string;           // Foreign key to BudgetPeriod
   date: string;                // ISO 8601 date (YYYY-MM-DD)
   amount: number;              // Transaction amount (negative for spending)
-  merchant_name: string;       // e.g., "Tesco", "Shell"
   description: string;         // Full transaction description from bank
   category_id: string;         // Foreign key to Category
   original_category: string | null; // Original category from Open Banking (if any)
@@ -49,7 +48,6 @@ export function createTransaction(
   period_id: string,
   date: string,
   amount: number,
-  merchant_name: string,
   description: string,
   default_category_id: string,
   original_category: string | null = null
@@ -64,7 +62,6 @@ export function createTransaction(
     period_id,
     date,
     amount,
-    merchant_name,
     description,
     category_id: default_category_id,
     original_category,

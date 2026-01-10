@@ -4,7 +4,6 @@ import { useState } from 'react';
 interface Transaction {
   transaction_id: string;
   date: string;
-  merchant_name: string;
   description: string;
   amount: number;
   category_id: string;
@@ -29,11 +28,9 @@ interface RowState {
 }
 
 export function TransactionList({ transactions, categories, onCategoryChange }: TransactionListProps) {
-  // Track state per transaction: pendingCategoryId, saving, error
   const [rowStates, setRowStates] = useState<Record<string, RowState>>({});
 
   const handleDropdownChange = (transactionId: string, newCategoryId: string, currentCategoryId: string) => {
-    // Mark row as dirty if changed
     if (newCategoryId !== currentCategoryId) {
       setRowStates(prev => ({
         ...prev,
@@ -44,7 +41,6 @@ export function TransactionList({ transactions, categories, onCategoryChange }: 
         },
       }));
     } else {
-      // If changed back to original, clear dirty state
       setRowStates(prev => {
         const newState = { ...prev };
         delete newState[transactionId];
@@ -57,7 +53,6 @@ export function TransactionList({ transactions, categories, onCategoryChange }: 
     const rowState = rowStates[transactionId];
     if (!rowState || !rowState.pendingCategoryId) return;
 
-    // Set saving state
     setRowStates(prev => ({
       ...prev,
       [transactionId]: {
@@ -70,14 +65,12 @@ export function TransactionList({ transactions, categories, onCategoryChange }: 
     try {
       await onCategoryChange(transactionId, rowState.pendingCategoryId);
 
-      // Clear dirty state on success
       setRowStates(prev => {
         const newState = { ...prev };
         delete newState[transactionId];
         return newState;
       });
     } catch (err) {
-      // Set error state
       setRowStates(prev => ({
         ...prev,
         [transactionId]: {
@@ -124,9 +117,6 @@ export function TransactionList({ transactions, categories, onCategoryChange }: 
                 Date
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Merchant
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Description
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -140,6 +130,7 @@ export function TransactionList({ transactions, categories, onCategoryChange }: 
               </th>
             </tr>
           </thead>
+
           <tbody className="bg-white divide-y divide-gray-200">
             {transactions.map((transaction) => {
               const dirty = isDirty(transaction.transaction_id);
@@ -152,25 +143,29 @@ export function TransactionList({ transactions, categories, onCategoryChange }: 
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {new Date(transaction.date).toLocaleDateString('en-GB')}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {transaction.merchant_name}
-                  </td>
+
                   <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
                     {transaction.description}
                   </td>
-                  <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${
-                    transaction.amount < 0 ? 'text-red-600' : 'text-green-600'
-                  }`}>
+
+                  <td
+                    className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${
+                      transaction.amount < 0 ? 'text-red-600' : 'text-green-600'
+                    }`}
+                  >
                     £{Math.abs(transaction.amount).toFixed(2)}
                   </td>
+
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     <select
                       value={displayCategoryId}
-                      onChange={(e) => handleDropdownChange(
-                        transaction.transaction_id,
-                        e.target.value,
-                        transaction.category_id
-                      )}
+                      onChange={(e) =>
+                        handleDropdownChange(
+                          transaction.transaction_id,
+                          e.target.value,
+                          transaction.category_id
+                        )
+                      }
                       disabled={saving}
                       className={`block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
                         dirty ? 'border-yellow-400 bg-yellow-50' : ''
@@ -179,14 +174,18 @@ export function TransactionList({ transactions, categories, onCategoryChange }: 
                       {categories.map((category) => (
                         <option key={category.category_id} value={category.category_id}>
                           {category.name}
-                          {transaction.is_manual_override && transaction.category_id === category.category_id && !dirty ? ' ✓' : ''}
+                          {transaction.is_manual_override &&
+                          transaction.category_id === category.category_id &&
+                          !dirty
+                            ? ' ✓'
+                            : ''}
                         </option>
                       ))}
                     </select>
-                    {error && (
-                      <p className="mt-1 text-xs text-red-600">{error}</p>
-                    )}
+
+                    {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
                   </td>
+
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {dirty && (
                       <div className="flex items-center space-x-2">
@@ -194,16 +193,30 @@ export function TransactionList({ transactions, categories, onCategoryChange }: 
                           onClick={() => handleSave(transaction.transaction_id)}
                           disabled={saving}
                           className={`px-3 py-1 text-xs font-medium rounded-md text-white ${
-                            saving
-                              ? 'bg-blue-400 cursor-not-allowed'
-                              : 'bg-blue-600 hover:bg-blue-700'
+                            saving ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
                           }`}
                         >
                           {saving ? (
                             <span className="flex items-center">
-                              <svg className="animate-spin -ml-1 mr-1 h-3 w-3 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                              <svg
+                                className="animate-spin -ml-1 mr-1 h-3 w-3 text-white"
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                              >
+                                <circle
+                                  className="opacity-25"
+                                  cx="12"
+                                  cy="12"
+                                  r="10"
+                                  stroke="currentColor"
+                                  strokeWidth="4"
+                                ></circle>
+                                <path
+                                  className="opacity-75"
+                                  fill="currentColor"
+                                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                ></path>
                               </svg>
                               Saving
                             </span>
@@ -211,6 +224,7 @@ export function TransactionList({ transactions, categories, onCategoryChange }: 
                             'Save'
                           )}
                         </button>
+
                         <button
                           onClick={() => handleCancel(transaction.transaction_id)}
                           disabled={saving}
@@ -220,6 +234,7 @@ export function TransactionList({ transactions, categories, onCategoryChange }: 
                         </button>
                       </div>
                     )}
+
                     {!dirty && transaction.is_manual_override && (
                       <span className="text-xs text-gray-400">Manually set</span>
                     )}

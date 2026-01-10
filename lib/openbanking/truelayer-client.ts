@@ -11,7 +11,6 @@ interface TrueLayerTransaction {
   amount: number;
   currency: string;
   description: string;
-  merchant_name?: string;
   transaction_type: string;
   transaction_category?: string;
 }
@@ -172,7 +171,6 @@ export class TrueLayerClient implements OpenBankingClient {
       external_id: `truelayer|${providerId}`,
       date,
       amount: normalizedAmount,
-      merchant_name: tx.merchant_name,
       description: tx.description || 'No description',
       transaction_type: tx.transaction_type, // optional but useful later
     };

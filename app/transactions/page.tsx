@@ -7,7 +7,6 @@ import { TransactionList } from '@/components/TransactionList';
 interface Transaction {
   transaction_id: string;
   date: string;
-  merchant_name: string;
   description: string;
   amount: number; // negative = spend, positive = income
   category_id: string;

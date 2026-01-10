@@ -14,20 +14,42 @@ export interface MappingContext {
 }
 
 /**
+ * Clean up bank transaction descriptions.
+ *
+ * Rules:
+ * 1) If description contains " ON " → remove everything from " ON " onwards
+ * 2) Otherwise, remove everything from the first occurrence of " <number>"
+ *    (space followed by a digit), to strip dates/times/codes
+ */
+function cleanDescription(raw: string): string {
+  if (!raw) return 'No description';
+
+  const upper = raw.toUpperCase();
+
+  // Rule 1: explicit " ON "
+  const onIndex = upper.indexOf(' ON ');
+  if (onIndex !== -1) {
+    return raw.slice(0, onIndex).trim();
+  }
+
+  // Rule 2: first space followed by a digit
+  const digitMatch = raw.match(/\s\d/);
+  if (digitMatch && digitMatch.index !== undefined) {
+    return raw.slice(0, digitMatch.index).trim();
+  }
+
+  return raw.trim();
+}
+
+/**
  * Map external Open Banking transaction to internal Transaction type
- * 
- * Uses createTransaction helper to ensure all required fields are set correctly.
- * All new transactions default to "Other" category (defaultCategoryId).
- * 
- * @param tx - External transaction from Open Banking provider
- * @param context - Required IDs for transaction creation
- * @returns Internal Transaction object
  */
 export function mapExternalToTransaction(
   tx: ExternalTransaction,
   context: MappingContext
 ): Transaction {
-  
+  const cleanedDescription = cleanDescription(tx.description);
+
   return createTransaction(
     tx.external_id,
     context.accountId,
@@ -35,9 +57,8 @@ export function mapExternalToTransaction(
     context.periodId,
     tx.date,
     tx.amount,
-    tx.merchant_name || 'Unknown',
-    tx.description,
+    cleanedDescription,
     context.defaultCategoryId,
-    null  // original_category - TrueLayer doesn't provide reliable categorization
+    null
   );
 }

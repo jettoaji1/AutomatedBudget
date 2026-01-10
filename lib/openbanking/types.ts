@@ -8,7 +8,6 @@ export type ExternalTransaction = {
   external_id: string;
   date: string;        // ISO date (YYYY-MM-DD)
   amount: number;      // signed number (negative = expense, positive = income)
-  merchant_name?: string;
   description: string;
   transaction_type?: string;
 };
