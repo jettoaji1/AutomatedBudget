@@ -14,8 +14,10 @@ interface UserSettings {
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState<UserSettings | null>(null);
-  const [periodType, setPeriodType] = useState<PeriodType>(PeriodType.FIXED_DATE);
-  const [anchorDay, setAnchorDay] = useState<number>(1);
+
+  // MVP: fixed date only
+  const [anchorDay, setAnchorDay] = useState<number>(25);
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -27,16 +29,15 @@ export default function SettingsPage() {
 
   const fetchSettings = async () => {
     try {
+      setError(null);
       const response = await fetch('/api/settings');
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch settings');
-      }
+      if (!response.ok) throw new Error('Failed to fetch settings');
 
       const data = await response.json();
       setSettings(data.settings);
-      setPeriodType(data.settings.period_type);
-      setAnchorDay(data.settings.anchor_day);
+
+      // Force fixed-date in UI (even if old data had income-anchored)
+      setAnchorDay(data.settings.anchor_day ?? 25);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
@@ -54,17 +55,17 @@ export default function SettingsPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          period_type: periodType,
+          period_type: PeriodType.FIXED_DATE, // ✅ lock to fixed-date
           anchor_day: anchorDay,
         }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        const data = await response.json();
         throw new Error(data.error || 'Failed to save settings');
       }
 
-      const data = await response.json();
       setSettings(data.settings);
       setSuccessMessage('Settings saved successfully! Changes will apply to new periods.');
     } catch (err) {
@@ -74,7 +75,7 @@ export default function SettingsPage() {
     }
   };
 
-  const calculatePeriodPreview = () => {
+  const preview = useMemo(() => {
     const today = new Date();
     const currentMonth = today.getMonth();
     const currentYear = today.getFullYear();
@@ -86,13 +87,11 @@ export default function SettingsPage() {
     let nextEnd: Date;
 
     if (currentDay >= anchorDay) {
-      // Current period: this month's anchor to next month's anchor
       currentStart = new Date(currentYear, currentMonth, anchorDay);
       currentEnd = new Date(currentYear, currentMonth + 1, anchorDay);
       nextStart = new Date(currentYear, currentMonth + 1, anchorDay);
       nextEnd = new Date(currentYear, currentMonth + 2, anchorDay);
     } else {
-      // Before anchor: last month's anchor to this month's anchor
       currentStart = new Date(currentYear, currentMonth - 1, anchorDay);
       currentEnd = new Date(currentYear, currentMonth, anchorDay);
       nextStart = new Date(currentYear, currentMonth, anchorDay);
@@ -125,26 +124,26 @@ export default function SettingsPage() {
         }),
       },
     };
-  };
+  }, [anchorDay]);
 
-  // ✅ Build TrueLayer connect URL with offline_access so we get refresh_token
-  // ✅ Include balance too since you call /balances
-  const connectUrl = useMemo(() => {
+  const truelayerAuthUrl = useMemo(() => {
     const clientId = process.env.NEXT_PUBLIC_TRUELAYER_CLIENT_ID;
     const redirectUri = process.env.NEXT_PUBLIC_TRUELAYER_REDIRECT_URI;
 
     if (!clientId || !redirectUri) return null;
 
-    const params = new URLSearchParams({
-      response_type: 'code',
-      client_id: clientId,
-      redirect_uri: redirectUri,
-      scope: 'accounts transactions balance offline_access',
-      providers: 'uk-ob-all',
-      prompt: 'consent',
-    });
+    const url = new URL('https://auth.truelayer.com/');
+    url.searchParams.set('response_type', 'code');
+    url.searchParams.set('client_id', clientId);
 
-    return `https://auth.truelayer.com/?${params.toString()}`;
+    // ✅ IMPORTANT: include offline_access so you get refresh_token
+    url.searchParams.set('scope', 'accounts transactions offline_access');
+
+    url.searchParams.set('redirect_uri', redirectUri);
+    url.searchParams.set('providers', 'uk-ob-all');
+    url.searchParams.set('prompt', 'consent');
+
+    return url.toString();
   }, []);
 
   if (loading) {
@@ -154,8 +153,6 @@ export default function SettingsPage() {
       </div>
     );
   }
-
-  const preview = calculatePeriodPreview();
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -175,29 +172,18 @@ export default function SettingsPage() {
 
       <div className="bg-white shadow rounded-lg p-6 space-y-6">
         <div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Budget Period Settings</h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">
+            Budget Period Settings
+          </h2>
           <p className="text-sm text-gray-600 mb-6">
-            Configure how your budget periods are calculated. Changes apply to new periods only.
+            Fixed monthly periods only (MVP). Changes apply to new periods only.
           </p>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Period Type</label>
-          <select
-            value={periodType}
-            onChange={(e) => setPeriodType(e.target.value as PeriodType)}
-            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-          >
-            <option value={PeriodType.FIXED_DATE}>
-              Fixed Date (e.g., 1st to 1st of each month)
-            </option>
-            <option value={PeriodType.INCOME_ANCHORED}>Income Anchored (payday to payday)</option>
-          </select>
-        </div>
-
+        {/* Fixed date only */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            {periodType === PeriodType.FIXED_DATE ? 'Start Day of Month' : 'Payday (Day of Month)'}
+            Start Day of Month
           </label>
           <select
             value={anchorDay}
@@ -212,9 +198,7 @@ export default function SettingsPage() {
             ))}
           </select>
           <p className="mt-2 text-sm text-gray-500">
-            {periodType === PeriodType.FIXED_DATE
-              ? 'Budget period runs from this day each month to the same day next month'
-              : 'Budget period runs from your payday to the day before your next payday'}
+            Budget period runs from this day each month to the same day next month.
           </p>
         </div>
 
@@ -245,23 +229,24 @@ export default function SettingsPage() {
             Connect your bank via TrueLayer to automatically import transactions.
           </p>
 
-          {connectUrl ? (
+          {truelayerAuthUrl ? (
             <a
-              href={connectUrl}
+              href={truelayerAuthUrl}
               className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 font-medium"
             >
               Connect / Reconnect Bank
             </a>
           ) : (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+            <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3">
               <p className="text-sm text-yellow-800">
-                Missing NEXT_PUBLIC_TRUELAYER_CLIENT_ID or NEXT_PUBLIC_TRUELAYER_REDIRECT_URI in env.
+                Missing TrueLayer public env vars. Set NEXT_PUBLIC_TRUELAYER_CLIENT_ID and
+                NEXT_PUBLIC_TRUELAYER_REDIRECT_URI.
               </p>
             </div>
           )}
 
           <p className="mt-3 text-xs text-gray-500">
-            This requests: accounts, transactions, balance, and offline_access (refresh token).
+            You only need to do this once unless access expires.
           </p>
         </div>
 
