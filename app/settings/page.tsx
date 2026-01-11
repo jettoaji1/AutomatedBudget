@@ -55,7 +55,7 @@ export default function SettingsPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          period_type: PeriodType.FIXED_DATE, // ✅ lock to fixed-date
+          period_type: PeriodType.FIXED_DATE, //  lock to fixed-date
           anchor_day: anchorDay,
         }),
       });
@@ -136,7 +136,7 @@ export default function SettingsPage() {
     url.searchParams.set('response_type', 'code');
     url.searchParams.set('client_id', clientId);
 
-    // ✅ IMPORTANT: include offline_access so you get refresh_token
+    //  IMPORTANT: include offline_access so you get refresh_token
     url.searchParams.set('scope', 'accounts transactions offline_access');
 
     url.searchParams.set('redirect_uri', redirectUri);

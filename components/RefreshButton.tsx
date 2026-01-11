@@ -20,7 +20,7 @@ export function RefreshButton({ onRefreshComplete }: RefreshButtonProps) {
   const [result, setResult] = useState<RefreshResult | null>(null);
 
   const handleRefresh = async () => {
-    // ✅ hard guard: prevents double-click / double-fire
+    //  hard guard: prevents double-click / double-fire
     if (loading) return;
 
     setLoading(true);
@@ -30,7 +30,7 @@ export function RefreshButton({ onRefreshComplete }: RefreshButtonProps) {
     try {
       const response = await fetch('/api/refresh', { method: 'POST' });
 
-      // ✅ avoid crashes if response isn't JSON (rare but happens)
+      //  avoid crashes if response isn't JSON (rare but happens)
       const data = await response.json().catch(() => ({} as any));
 
       if (!response.ok) {

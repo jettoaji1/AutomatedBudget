@@ -75,7 +75,7 @@ export async function POST() {
       to.toISOString()
     );
 
-    // ✅ NEW: set starting balance = current balance - net change (MVP)
+    //  NEW: set starting balance = current balance - net change (MVP)
     // Net change uses signed amounts: income positive, spending negative
     const currentBalance = await trueLayerClient.fetchCurrentBalance(trueLayerAccountId);
     const netChange = externalTransactions.reduce((sum, tx) => sum + (tx.amount ?? 0), 0);
@@ -105,7 +105,7 @@ export async function POST() {
     const attempted = internalTransactions.length;
     const deduped = attempted - inserted;
 
-    // ✅ Persist last refresh timestamp (for auto-refresh logic)
+    //  Persist last refresh timestamp (for auto-refresh logic)
     const settings = await storage.settingsStorage.getOrCreateSettings(user.user_id);
     const nowIso = new Date().toISOString();
     settings.last_refreshed_at = nowIso;

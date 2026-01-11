@@ -24,7 +24,7 @@ export default function TransactionsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // ✅ MVP: hide income by default
+  //  MVP: hide income by default
   const [showIncome, setShowIncome] = useState(false);
 
   useEffect(() => {
